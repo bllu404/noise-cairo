@@ -42,14 +42,14 @@ func dot_prod{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (res):
 end
 
 
-#func get_half_sqrt2{range_check_ptr}() -> (half_sqrt2):
-#    alloc_locals
-#    local range_check_ptr = range_check_ptr
-#
-#    let (two_64x61) = Math64x61_fromFelt(2)
-#    let (sqrt2) = Math64x61_sqrt(two_64x61)
-#    let (half_sqrt2) = Math64x61_div(Math64x61_ONE, sqrt2)
-#    return (half_sqrt2)
+func get_half_sqrt2{range_check_ptr}() -> (half_sqrt2):
+    alloc_locals
+    local range_check_ptr = range_check_ptr
+
+    let (two_64x61) = Math64x61_fromFelt(2)
+    let (sqrt2) = Math64x61_sqrt(two_64x61)
+    let (half_sqrt2) = Math64x61_div(Math64x61_ONE, sqrt2)
+    return (half_sqrt2)
 #end
 
 # x and y refer to an intersection of the gridlines of the perlin noise grid, seed
@@ -89,6 +89,18 @@ func get_offset_vec{range_check_ptr}(point : (felt, felt), grid_point : (felt, f
     return (offset_vec)
 end
 
+func vec_to_vec64x61{range_check_ptr}(vec : (felt, felt)) -> (res: (felt, felt)):
+    let (x_64x61) = Math64x61_fromFelt(vec[0])
+    let (y_64x61) = Math64x61_fromFelt(vec[1])
+    return (res=(x_64x61, y_64x61))
+end
+
+func normalize_vec{range_check_ptr}(vec : (felt, felt), scale) -> (res: (felt, felt)):
+    alloc_locals
+    let (x_normalized) = Math64x61_div(vec[0], scale)
+    let (y_normalized) = Math64x61_div(vec[1], scale)
+    return (res=(x_normalized, y_normalized))
+end
 
 # a, b, and t should be in 64.61 fixed-point format
 func linterp{range_check_ptr}(a, b, t) -> (res):
@@ -130,7 +142,7 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
     let upper_x_scaled = upper_x * scale
     let upper_y_scaled = upper_y * scale
 
-    ######### Computing the random vector at each corner of the grid box #########
+    ######### Computing the random vector at each grid node #########
     let (lower_x_lower_y_randvec : (felt, felt)) = select_vector(lower_x, lower_y, seed)
     let (lower_x_upper_y_randvec : (felt, felt)) = select_vector(lower_x, upper_y, seed)
     let (upper_x_lower_y_randvec : (felt, felt)) = select_vector(upper_x, lower_y, seed)
@@ -149,12 +161,16 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
     let (dot_upper_x_upper_y) = dot_prod(upper_x_upper_y_randvec, upper_x_upper_y_offsetvec)
 
     ######### Computing bilinear interpolation of the dot products #########
-    let point_64x61 : (felt,felt) = (Math64x61_fromFelt(point[0]).res, Math64x61_fromFelt(point[1]).res)
-    let point_64x61_normalized : (felt, felt) = (Math64x61_div(point_64x61[0], scale).res, Math64x61_div(point_64x61[1], scale).res)
+    let point_64x61 : (felt,felt) = vec_to_vec64x61(point)
+    let point_64x61_normalized : (felt, felt) = normalize_vec(point_64x61, scale)
 
-    let (linterp_lower_x) = linterp(dot_lower_x_lower_y, dot_lower_x_upper_y, fade_func(point_64x61_normalized[0] - lower_x).res)
-    let (linterp_upper_x) = linterp(dot_upper_x_lower_y, dot_upper_x_upper_y, fade_func(point_64x61_normalized[0] - lower_x).res)
-    let (linterp_final) = linterp(linterp_lower_x, linterp_upper_x, fade_func(point_64x61_normalized[1] - lower_y).res)
+    let (faded1) = fade_func(point_64x61_normalized[0] - lower_x)
+    let (faded2) = fade_func(point_64x61_normalized[1] - lower_y)
+
+    # Calculating value of the fade function for each
+    let (linterp_lower_x) = linterp(dot_lower_x_lower_y, dot_upper_x_lower_y, faded1)
+    let (linterp_upper_x) = linterp(dot_upper_x_upper_y, dot_upper_x_upper_y, faded1)
+    let (linterp_final) = linterp(linterp_lower_x, linterp_upper_x, faded2)
 
     return (res=linterp_final)
 end 
