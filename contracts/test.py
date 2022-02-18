@@ -24,13 +24,16 @@ async def test_rand_2bits():
     )
 
     print()
-
+    '''
     sum = 0
     loop_iters = 50
 
     for i in range(loop_iters):
-        result = await contract.get_rand_2bits(seed1=i, seed2=i).call()
+        result = await contract.get_rand_2bits(seed1=i, seed2=i, seed3=i).call()
         sum += result.result.bits
 
     print(sum/loop_iters)
+    '''
+    half_sqrt2 = await contract.half_sqrt2().call()
+    print(half_sqrt2.result.half_sqrt)
     
