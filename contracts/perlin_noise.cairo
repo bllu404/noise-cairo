@@ -14,7 +14,8 @@ from Math64x61 import (
     Math64x61_sub,
     Math64x61_pow,
     Math64x61_ONE,
-    Math64x61_FRACT_PART
+    Math64x61_FRACT_PART,
+    Math64x61_assert64x61
 )
 
 # 1/sqrt(2), in 64.61 fixed-point format
@@ -50,7 +51,7 @@ func get_half_sqrt2{range_check_ptr}() -> (half_sqrt2):
     let (sqrt2) = Math64x61_sqrt(two_64x61)
     let (half_sqrt2) = Math64x61_div(Math64x61_ONE, sqrt2)
     return (half_sqrt2)
-#end
+end
 
 # x and y refer to an intersection of the gridlines of the perlin noise grid, seed
 # 1 = 1/sqrt(2), -1 = -1/sqrt(2)
@@ -59,15 +60,15 @@ func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x
     let (choice) = rand_2bits(x,y,seed)
 
     if choice == 0:
-        tempvar vec : (felt, felt) = (-1,-1)
+        tempvar vec : (felt, felt) = (NEG_HALF_SQRT2, NEG_HALF_SQRT2)
     else: 
         if choice == 1:
-            tempvar vec : (felt, felt) = (-1,1)
+            tempvar vec : (felt, felt) = (NEG_HALF_SQRT2, HALF_SQRT2)
         else: 
             if choice == 2:
-                tempvar vec : (felt, felt) = (1,-1)
+                tempvar vec : (felt, felt) = (HALF_SQRT2, NEG_HALF_SQRT2)
             else:
-                tempvar vec : (felt,felt) = (1,1)
+                tempvar vec : (felt,felt) = (HALF_SQRT2, HALF_SQRT2)
             end 
         end 
     end
@@ -83,10 +84,11 @@ func get_nearest_gridlines{range_check_ptr}(x, y, scale) -> (lower_x, lower_y):
     return (lower_x, lower_y)
 end
 
-# Returns the offset vector between a grid point and the point for which noise is being generated
-func get_offset_vec{range_check_ptr}(point : (felt, felt), grid_point : (felt, felt)) -> (offset_vec: (felt, felt)):
+# Returns the offset vector between a grid point and the point for which noise is being generated, in 64.61 format
+func get_offset_vec{range_check_ptr}(point : (felt, felt), grid_point : (felt, felt)) -> (offset_vec_64x61: (felt, felt)):
     tempvar offset_vec : (felt, felt) = (point[0] - grid_point[0], point[1] - grid_point[1])
-    return (offset_vec)
+    let (offset_vec_64x61 : (felt, felt)) = vec_to_vec64x61(offset_vec)
+    return (offset_vec_64x61)
 end
 
 func vec_to_vec64x61{range_check_ptr}(vec : (felt, felt)) -> (res: (felt, felt)):
@@ -95,11 +97,13 @@ func vec_to_vec64x61{range_check_ptr}(vec : (felt, felt)) -> (res: (felt, felt))
     return (res=(x_64x61, y_64x61))
 end
 
-func normalize_vec{range_check_ptr}(vec : (felt, felt), scale) -> (res: (felt, felt)):
+
+func scale_vec{range_check_ptr}(vec : (felt, felt), scale) -> (res: (felt, felt)):
     alloc_locals
-    let (x_normalized) = Math64x61_div(vec[0], scale)
-    let (y_normalized) = Math64x61_div(vec[1], scale)
-    return (res=(x_normalized, y_normalized))
+    let (scale_64x61) = Math64x61_fromFelt(scale)
+    let (x_scaled) = Math64x61_div(vec[0], scale_64x61)
+    let (y_scaled) = Math64x61_div(vec[1], scale_64x61)
+    return (res=(x_scaled, y_scaled))
 end
 
 # a, b, and t should be in 64.61 fixed-point format
@@ -143,6 +147,7 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
     let upper_y_scaled = upper_y * scale
 
     ######### Computing the random vector at each grid node #########
+    # Currently 4 hashes are computed, which is expensive. Is there a cheaper PRNG? 
     let (lower_x_lower_y_randvec : (felt, felt)) = select_vector(lower_x, lower_y, seed)
     let (lower_x_upper_y_randvec : (felt, felt)) = select_vector(lower_x, upper_y, seed)
     let (upper_x_lower_y_randvec : (felt, felt)) = select_vector(upper_x, lower_y, seed)
@@ -162,10 +167,20 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
 
     ######### Computing bilinear interpolation of the dot products #########
     let point_64x61 : (felt,felt) = vec_to_vec64x61(point)
-    let point_64x61_normalized : (felt, felt) = normalize_vec(point_64x61, scale)
+    let point_64x61_scaled : (felt, felt) = scale_vec(point_64x61, scale)
 
-    let (faded1) = fade_func(point_64x61_normalized[0] - lower_x)
-    let (faded2) = fade_func(point_64x61_normalized[1] - lower_y)
+    let (lower_x_64x61) = Math64x61_fromFelt(lower_x)
+    let (lower_y_64x61) = Math64x61_fromFelt(lower_y)
+
+    let(diff1) = Math64x61_sub(point_64x61_scaled[0], lower_x_64x61)
+    let(diff2) = Math64x61_sub(point_64x61_scaled[1], lower_y_64x61)
+
+    Math64x61_assert64x61(diff1)
+    # diff1 -> point_64x61_scaled -> point_64x61 -> point -> 
+    #   |_ lower_x_64x61 -> lower_x -> (point, scale)
+    #              
+    let (faded1) = fade_func(diff1)
+    let (faded2) = fade_func(diff1)
 
     # Calculating value of the fade function for each
     let (linterp_lower_x) = linterp(dot_lower_x_lower_y, dot_upper_x_lower_y, faded1)
