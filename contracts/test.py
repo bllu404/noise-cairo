@@ -1,6 +1,6 @@
 import os
 import pytest
-from math import sqrt
+from math import sqrt, floor
 from starkware.starknet.testing.starknet import Starknet
 
 # The path to the contract source code.
@@ -13,6 +13,7 @@ CONTRACT_FILE = os.path.join(
 
 FRACT_PART = 2**61
 ERROR = 1/10_000
+ERROR_FIXED_POINT = 2**16
 CAIRO_PRIME = 3618502788666131213697322783095070105623107215331596699973092056135872020481
 HALF_PRIME = CAIRO_PRIME // 2
 HALF_SQRT2 = 1/sqrt(2)
@@ -27,6 +28,15 @@ def get_vec_lift(x):
     x_1 = get_lift(x[1])
     return (x_0, x_1)
 
+def dot_prod(x, y):
+    return x[0]*y[0] + x[1]*y[1]
+
+def linterp(a, b, t):
+    return floor(a + t*(b-a)*FRACT_PART)
+
+def fade_func(x):
+    return 6*x**5 - 15*x**4 + 10*x**3
+
 @pytest.mark.asyncio
 async def test_perlin_noise():
     
@@ -39,6 +49,8 @@ async def test_perlin_noise():
         source=CONTRACT_FILE
     )
 
+    print()
+    
     ###### Testing the PRNG ######
     '''
     print("\n\nPRNG Test\n")
@@ -82,24 +94,59 @@ async def test_perlin_noise():
     assert(case4.x_gridline == 6 and case4.y_gridline == 5)
     '''
 
-    '''
+    
     #### Testing offset vector function
+    '''
     print()
 
     case1 = (await contract.get_offset((1,2), (1,2)).call()).result.offset_vec_64x61
     case2 = (await contract.get_offset((1,2), (5,7)).call()).result.offset_vec_64x61
     case3 = (await contract.get_offset((5,7), (1,2)).call()).result.offset_vec_64x61
 
-    print(f"{case1[0]/2**61}, {case1[1]/2**61}")
     assert(get_vec_lift(case1) == (0,0))
     assert(get_vec_lift(case2) == (-4*2**61, -5*2**61))
     assert(get_vec_lift(case3) == (4*2**61, 5*2**61))
     '''
 
-    
+    #### Testing dot product function
+    '''
+    case1 = (await contract.get_dot_prod((1,2),(3,4)).call()).result.res
+    case2 = (await contract.get_dot_prod((1,0),(0,1)).call()).result.res
+    case3 = (await contract.get_dot_prod((-1,2),(3,-4)).call()).result.res
+
+    assert(case1 == 11 * 2**61)
+    assert(case2 == 0)
+    assert(get_lift(case3) == -11*2**61)
+    '''
+
+    #### Testing fade function
+    '''
+    case1 = (await contract.get_fade_func(0).call()).result.res # 0
+    case2 = (await contract.get_fade_func(FRACT_PART).call()).result.res # 1 
+    case3 = (await contract.get_fade_func(2**60).call()).result.res # 0.5
+    case4 = (await contract.get_fade_func(int(0.25*2**61)).call()).result.res # 0.25
+
+    assert(case1 == 0)
+    assert(case2 == 2**61)
+    assert(case3 == floor(fade_func(0.5)*FRACT_PART))
+    case4_ground_truth = floor(fade_func(0.25)*FRACT_PART)
+    assert(case4 <= case4_ground_truth + ERROR_FIXED_POINT and case4 >= case4_ground_truth - ERROR_FIXED_POINT)
+    '''
+
+    #### Testing linterp function
+    '''
+    case1 = (await contract.get_linterp(0,1*FRACT_PART,1*FRACT_PART).call()).result.res
+    case2 = (await contract.get_linterp(0,1*FRACT_PART,0).call()).result.res
+    case3 = (await contract.get_linterp(0,1*FRACT_PART,int(0.5*FRACT_PART)).call()).result.res
+    case4 = (await contract.get_linterp(0,1*FRACT_PART,int(0.75*FRACT_PART)).call()).result.res
+
+    assert(case1 == FRACT_PART)
+    assert(case2 == 0)
+    assert(case3 == 2**60)
+    assert(case4 == 2**60 + 2**59)
     #### Testing noise function
     '''
-    print()
+
     #### Testing Noise Function
     for i in range(30):
         noiseVal = await contract.get_noise(0,5+5*i).call()
@@ -108,7 +155,7 @@ async def test_perlin_noise():
     for i in range(20):
         noiseVal = await contract.get_noise(0,90+i).call()
         print(f"{90+i}: {noiseVal.result.res/FRACT_PART}")
-    '''
+    
 
 
 
