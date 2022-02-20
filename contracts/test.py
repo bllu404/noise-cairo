@@ -17,6 +17,16 @@ CAIRO_PRIME = 361850278866613121369732278309507010562310721533159669997309205613
 HALF_PRIME = CAIRO_PRIME // 2
 HALF_SQRT2 = 1/sqrt(2)
 
+# Gets the integer lift of a felt
+def get_lift(x):
+    return x if x < 2**128 else x - CAIRO_PRIME
+
+# Gets integer lift of a 2d vector tuple
+def get_vec_lift(x):
+    x_0 = get_lift(x[0])
+    x_1 = get_lift(x[1])
+    return (x_0, x_1)
+
 @pytest.mark.asyncio
 async def test_perlin_noise():
     
@@ -72,10 +82,33 @@ async def test_perlin_noise():
     assert(case4.x_gridline == 6 and case4.y_gridline == 5)
     '''
 
-    #### Testing Noise Function
-    noiseVal = await contract.get_noise(5,6).call()
-    print(noiseVal.result.res/FRACT_PART)
+    '''
+    #### Testing offset vector function
+    print()
 
+    case1 = (await contract.get_offset((1,2), (1,2)).call()).result.offset_vec_64x61
+    case2 = (await contract.get_offset((1,2), (5,7)).call()).result.offset_vec_64x61
+    case3 = (await contract.get_offset((5,7), (1,2)).call()).result.offset_vec_64x61
+
+    print(f"{case1[0]/2**61}, {case1[1]/2**61}")
+    assert(get_vec_lift(case1) == (0,0))
+    assert(get_vec_lift(case2) == (-4*2**61, -5*2**61))
+    assert(get_vec_lift(case3) == (4*2**61, 5*2**61))
+    '''
+
+    
+    #### Testing noise function
+    '''
+    print()
+    #### Testing Noise Function
+    for i in range(30):
+        noiseVal = await contract.get_noise(0,5+5*i).call()
+        print(f"{5*i}: {noiseVal.result.res/FRACT_PART}")
+
+    for i in range(20):
+        noiseVal = await contract.get_noise(0,90+i).call()
+        print(f"{90+i}: {noiseVal.result.res/FRACT_PART}")
+    '''
 
 
 

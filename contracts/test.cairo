@@ -7,7 +7,8 @@ from perlin_noise import (
     get_half_sqrt2, 
     select_vector, 
     get_nearest_gridlines,
-    noise_custom
+    noise_custom,
+    get_offset_vec
 )
 
 ############# Utility functions #############
@@ -43,6 +44,11 @@ func get_gridlines{range_check_ptr}(x, y, scale) -> (x_gridline, y_gridline):
     return (x_gridline, y_gridline)
 end
 
+@view 
+func get_offset{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (offset_vec_64x61: (felt, felt)):
+    let (offset_vec_64x61) = get_offset_vec(a, b)
+    return (offset_vec_64x61)
+end
 @view 
 func get_noise{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(x, y) -> (res):
     let (noiseVal) = noise_custom((x, y), 100, 69)
