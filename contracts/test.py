@@ -50,7 +50,7 @@ async def test_perlin_noise():
     )
 
     print()
-    
+
     ###### Testing the PRNG ######
     '''
     print("\n\nPRNG Test\n")
@@ -148,13 +148,14 @@ async def test_perlin_noise():
     '''
 
     #### Testing Noise Function
+    '''
     for i in range(30):
-        noiseVal = await contract.get_noise(0,5+5*i).call()
-        print(f"{5*i}: {noiseVal.result.res/FRACT_PART}")
-
-    for i in range(20):
-        noiseVal = await contract.get_noise(0,90+i).call()
-        print(f"{90+i}: {noiseVal.result.res/FRACT_PART}")
+        noiseVal = (await contract.get_noise(0,5+5*i).call()).result.res
+        print(f"{5*i}: {get_lift(noiseVal)/FRACT_PART}")
+    '''
+    for i in range(30):
+        noiseVal = (await contract.get_noise(0,120+i).call()).result.res
+        print(f"{90+i}: {get_lift(noiseVal)/FRACT_PART}")
     
 
 

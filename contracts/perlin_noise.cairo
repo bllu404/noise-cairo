@@ -79,17 +79,19 @@ end
 
 # Scale represents the ratio of gridlines to coordinates. If scale == 1, then there is 1 gridline for every coordinate. 
 # If scale == 100, then there is a gridline on every 100th coordinate. 
-func get_nearest_gridlines{range_check_ptr}(x, y, scale) -> (lower_x, lower_y):
+func get_nearest_gridlines{range_check_ptr}(x, y, scale) -> (lower_x_64x61, lower_y_64x61):
     let (lower_x, _) = unsigned_div_rem(x, scale)
     let (lower_y, _) = unsigned_div_rem(y, scale)
-    return (lower_x, lower_y)
+    let (lower_x_64x61) = Math64x61_fromFelt(lower_x)
+    let (lower_y_64x61) = Math64x61_fromFelt(lower_y)
+    return (lower_x_64x61, lower_y_64x61)
 end
 
-# Returns the offset vector (in 64.61 format) between two vectors (which are not in 64.61 format)
+# Returns the offset vector (in 64.61 format) between two vectors (64.61 format expected)
 func get_offset_vec{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (offset_vec_64x61: (felt, felt)):
-    tempvar offset_vec : (felt, felt) = (a[0] - b[0], a[1] - b[1])
-    let (offset_vec_64x61 : (felt, felt)) = vec_to_vec64x61(offset_vec)
-    return (offset_vec_64x61)
+    let (diff_x) = Math64x61_sub(a[0], b[0])
+    let (diff_y) = Math64x61_sub(a[1], b[1])
+    return (offset_vec_64x61=(diff_x, diff_y))
 end
 
 func vec_to_vec64x61{range_check_ptr}(vec : (felt, felt)) -> (res: (felt, felt)):
@@ -136,34 +138,34 @@ end
 # 5. Calculate the linear interpolation between the pairs of dot products using the fade function
 
 
-# Assumes x, y, scale, and seed are unsigned felts. Returns a felt in 64.61 signed format. 
+# Assumes point, scale, and seed are regular felts. Returns a felt in 64.61 signed format. 
+# scale essentially represents the desired grid-box sidelength
 func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(point : (felt,felt), scale, seed) -> (res):
     alloc_locals
 
     let (point_64x61) = vec_to_vec64x61(point)
     let (scale_64x61) = Math64x61_fromFelt(scale)
-    
-    let (lower_x, lower_y) = get_nearest_gridlines(point[0], point[1], scale)
-    tempvar upper_x = lower_x + 1
-    tempvar upper_y = lower_y + 1
 
-    tempvar lower_x_scaled = lower_x * scale
-    tempvar lower_y_scaled = lower_y * scale
-    tempvar upper_x_scaled = upper_x * scale
-    tempvar upper_y_scaled = upper_y * scale
+    # Scaling down the point vector so that, relative to it, each gridbox has a sidelength of 1. 
+    let (point_64x61_scaled : (felt, felt)) = scale_vec(point_64x61, scale_64x61)
+    
+    let (lower_x_64x61, lower_y_64x61) = get_nearest_gridlines(point[0], point[1], scale)
+
+    let (upper_x_64x61) = Math64x61_add(lower_x_64x61, Math64x61_ONE)
+    let (upper_y_64x61) = Math64x61_add(lower_x_64x61, Math64x61_ONE)
 
     ######### Computing the random gradient vector at each grid node #########
     # Currently 4 hashes are computed, which is expensive. Is there a cheaper PRNG? 
-    let (lower_x_lower_y_randvec : (felt, felt)) = select_vector(lower_x, lower_y, seed)
-    let (lower_x_upper_y_randvec : (felt, felt)) = select_vector(lower_x, upper_y, seed)
-    let (upper_x_lower_y_randvec : (felt, felt)) = select_vector(upper_x, lower_y, seed)
-    let (upper_x_upper_y_randvec : (felt, felt)) = select_vector(upper_x, upper_y, seed)
+    let (lower_x_lower_y_randvec : (felt, felt)) = select_vector(lower_x_64x61, lower_y_64x61, seed)
+    let (lower_x_upper_y_randvec : (felt, felt)) = select_vector(lower_x_64x61, upper_y_64x61, seed)
+    let (upper_x_lower_y_randvec : (felt, felt)) = select_vector(upper_x_64x61, lower_y_64x61, seed)
+    let (upper_x_upper_y_randvec : (felt, felt)) = select_vector(upper_x_64x61, upper_y_64x61, seed)
 
     ######### Computing the offset vectors #########
-    let (lower_x_lower_y_offsetvec : (felt, felt)) = get_offset_vec(point, (lower_x_scaled, lower_y_scaled))
-    let (lower_x_upper_y_offsetvec : (felt, felt)) = get_offset_vec(point, (lower_x_scaled, upper_y_scaled))
-    let (upper_x_lower_y_offsetvec : (felt, felt)) = get_offset_vec(point, (upper_x_scaled, lower_y_scaled))
-    let (upper_x_upper_y_offsetvec : (felt, felt)) = get_offset_vec(point, (upper_x_scaled, upper_y_scaled))
+    let (lower_x_lower_y_offsetvec : (felt, felt)) = get_offset_vec(point_64x61_scaled, (lower_x_64x61, lower_y_64x61))
+    let (lower_x_upper_y_offsetvec : (felt, felt)) = get_offset_vec(point_64x61_scaled, (lower_x_64x61, upper_y_64x61))
+    let (upper_x_lower_y_offsetvec : (felt, felt)) = get_offset_vec(point_64x61_scaled, (upper_x_64x61, lower_y_64x61))
+    let (upper_x_upper_y_offsetvec : (felt, felt)) = get_offset_vec(point_64x61_scaled, (upper_x_64x61, upper_y_64x61))
 
     ######### Computing dot products  #########
     let (dot_lower_x_lower_y) = dot_prod(lower_x_lower_y_randvec, lower_x_lower_y_offsetvec)
@@ -173,11 +175,6 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
 
     #### 
     ######### Computing bilinear interpolation of the dot products #########
-    let (point_64x61_scaled : (felt, felt)) = scale_vec(point_64x61, scale_64x61)
-
-    let (lower_x_64x61) = Math64x61_fromFelt(lower_x)
-    let (lower_y_64x61) = Math64x61_fromFelt(lower_y)
-
     let(diff1) = Math64x61_sub(point_64x61_scaled[0], lower_x_64x61)
     let(diff2) = Math64x61_sub(point_64x61_scaled[1], lower_y_64x61)
 
