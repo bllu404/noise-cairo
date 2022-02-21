@@ -20,6 +20,6 @@ end
 
 - `seed` can be any felt, and is used to randomize the noise function. 
 
-- `point` is a tuple of two felts: `(felt, felt)`, and should NOT be in 64.61 format. Note that both `point[0]` and `point[1]` should be less than $2^{64}$, as they are converted to 64.61 values and may overflow otherwise. 
+- `point` is a tuple of two felts: `(felt, felt)`, and should NOT be in 64.61 format. Note that both `point[0]` and `point[1]` should be less than 2^64, as they are converted to 64.61 values and may overflow otherwise. 
 
 - `scale` should be a regular (i.e., not in 64.61 format) unsigned felt. `scale` determines the side lengths of the squares of the grid used to in the noise function. Practically speaking, the larger `scale` is, the more 'slowly' the noise function varies, and the smaller it is, the faster the noise function varies. So if `scale` is very large, the difference between `noise(x,y)` and `noise(x, y+1)` would very small, and if `scale` is very small the difference between them would be larger.
