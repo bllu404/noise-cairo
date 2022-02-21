@@ -161,8 +161,8 @@ async def test_perlin_noise():
 
     #### Testing Noise Function
     for i in range(100):
-        noiseVal = (await contract.get_noise(11_500,1000+10*i).call()).result.res
-        print(f"{10*i}: {get_lift(noiseVal)/FRACT_PART}")
+        noiseVal = (await contract.get_noise(11_500,900+10*i).call()).result.res
+        print(f"{900+10*i}: {get_lift(noiseVal)/FRACT_PART}")
 
 
 

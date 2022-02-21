@@ -44,15 +44,14 @@ func dot_prod{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (res):
 end
 
 
-func get_half_sqrt2{range_check_ptr}() -> (half_sqrt2):
-    alloc_locals
-    local range_check_ptr = range_check_ptr
-
-    let (two_64x61) = Math64x61_fromFelt(2)
-    let (sqrt2) = Math64x61_sqrt(two_64x61)
-    let (half_sqrt2) = Math64x61_div(Math64x61_ONE, sqrt2)
-    return (half_sqrt2)
-end
+#func get_half_sqrt2{range_check_ptr}() -> (half_sqrt2):
+#    alloc_locals
+#    local range_check_ptr = range_check_ptr
+#
+#    let (two_64x61) = Math64x61_fromFelt(2)
+#    let (sqrt2) = Math64x61_sqrt(two_64x61)
+#    return Math64x61_div(Math64x61_ONE, sqrt2)
+#end
 
 # x and y refer to an intersection of the gridlines of the perlin noise grid, seed
 # 1 = 1/sqrt(2), -1 = -1/sqrt(2)
@@ -112,8 +111,7 @@ end
 func linterp{range_check_ptr}(a, b, t) -> (res):
     let (diff) = Math64x61_sub(b, a)
     let (t_times_diff) = Math64x61_mul(t, diff)
-    let (res) = Math64x61_add(a, t_times_diff)
-    return (res)
+    return Math64x61_add(a, t_times_diff)
 end
 
 # x should be in 64.61 format
@@ -125,8 +123,7 @@ func fade_func{range_check_ptr}(x) -> (res):
     let (fifteen_x_pow4) = Math64x61_mul(15*Math64x61_FRACT_PART, x_pow4)
     let (ten_x_pow3) = Math64x61_mul(10*Math64x61_FRACT_PART, x_pow3)
     let (diff) = Math64x61_sub(six_x_pow5, fifteen_x_pow4)
-    let (res) = Math64x61_add(diff, ten_x_pow3)
-    return (res)
+    return Math64x61_add(diff, ten_x_pow3)
 end
 
 

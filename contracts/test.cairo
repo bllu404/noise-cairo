@@ -5,7 +5,6 @@ from starkware.cairo.common.hash import hash2
 from Math64x61 import Math64x61_fromFelt
 from perlin_noise import (
     rand_2bits, 
-    get_half_sqrt2, 
     select_vector, 
     get_nearest_gridlines,
     noise_custom,
@@ -35,10 +34,10 @@ func get_random_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin
     return select_vector(x, y, seed)
 end
 
-@view
-func half_sqrt2{range_check_ptr}() -> (half_sqrt):
-    return get_half_sqrt2()
-end
+#@view
+#func half_sqrt2{range_check_ptr}() -> (half_sqrt):
+#    return get_half_sqrt2()
+#end
 
 @view
 func get_gridlines{range_check_ptr}(x, y, scale) -> (x_gridline, y_gridline):
@@ -74,7 +73,7 @@ end
 
 @view 
 func get_noise{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(x, y) -> (res):
-    let (noiseVal) = noise_custom((x, y), 1000, 69)
-    return (res=noiseVal)
+    let (noise_val) = noise_custom((x, y), 1000, 69)
+    return (res=noise_val)
 end
 
