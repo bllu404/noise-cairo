@@ -73,7 +73,7 @@ end
 
 @view 
 func get_noise{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(x, y) -> (res):
-    let (noise_val) = noise_custom((x, y), 1000, 69)
+    let (noise_val) = noise_custom((x, y), 100, 69)
     return (res=noise_val)
 end
 

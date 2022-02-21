@@ -1,7 +1,7 @@
 # Perlin Noise in Cairo
 
 ## How to use
-Add  `perlin_noise.cairo` and its dependency `Math64x61.cairo` to your project folder, and import `noise_custom` into your project as follows
+Add  `perlin_noise.cairo` and [its dependency](https://github.com/influenceth/cairo-math-64x61/blob/master/contracts/Math64x61.cairo) `Math64x61.cairo` to your project folder, and import `noise_custom` into your project as follows
 
 ```
 from perlin_noise import noise_custom

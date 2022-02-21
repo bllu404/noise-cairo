@@ -21,6 +21,7 @@ from Math64x61 import (
 # 1/sqrt(2), in 64.61 fixed-point format
 const HALF_SQRT2 = 1630477227105714176
 const NEG_HALF_SQRT2 = -HALF_SQRT2
+const Math64x61_TWO = 2 * Math64x61_FRACT_PART
 
 # pseudo-randomly returns 0, 1, 2, or 3 based on the given seed.
 func rand_2bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(seed1, seed2, seed3) -> (bits):
@@ -53,7 +54,7 @@ end
 #    return Math64x61_div(Math64x61_ONE, sqrt2)
 #end
 
-# x and y refer to an intersection of the gridlines of the perlin noise grid, seed
+# x and y refer to an intersection of the gridlines of the perlin noise grid, seed is an additional variable for randomness
 # 1 = 1/sqrt(2), -1 = -1/sqrt(2)
 func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x, y, seed) -> (vec: (felt, felt)):
     alloc_locals
@@ -90,7 +91,14 @@ end
 func get_offset_vec{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (offset_vec_64x61: (felt, felt)):
     let (diff_x) = Math64x61_sub(a[0], b[0])
     let (diff_y) = Math64x61_sub(a[1], b[1])
-    return (offset_vec_64x61=(diff_x, diff_y))
+
+    # The maximum value of the noise function occurs when the point is in the exact middle of a grid-square.
+    # However the length of all offset vectors is 0.5 if the point is in this position. Therefore we must scale
+    # The offset vectors by 2 to ensure that the final result is between -1 and 1
+    let (scaled_diff_x) = Math64x61_mul(diff_x, Math64x61_TWO)
+    let (scaled_diff_y) = Math64x61_mul(diff_y, Math64x61_TWO)
+
+    return (offset_vec_64x61=(scaled_diff_x, scaled_diff_y))
 end
 
 func vec_to_vec64x61{range_check_ptr}(vec : (felt, felt)) -> (res: (felt, felt)):
@@ -152,7 +160,7 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
     let (upper_y_64x61) = Math64x61_add(lower_y_64x61, Math64x61_ONE)
 
     ######### Computing the random gradient vector at each grid node #########
-    # Currently 4 hashes are computed, which is a bit expensive. Is there an even cheaper PRNG? 
+    # Currently 8 hashes are computed, which is expensive. Is there an even cheaper PRNG? 
     let (lower_x_lower_y_randvec : (felt, felt)) = select_vector(lower_x_64x61, lower_y_64x61, seed)
     let (lower_x_upper_y_randvec : (felt, felt)) = select_vector(lower_x_64x61, upper_y_64x61, seed)
     let (upper_x_lower_y_randvec : (felt, felt)) = select_vector(upper_x_64x61, lower_y_64x61, seed)
