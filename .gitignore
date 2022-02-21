@@ -1,4 +1,5 @@
 *_compiled.json
 *_abi.json
 compile-command.txt
-__pycache__
+contracts/__pycache__
+contracts/.pytest_cache
