@@ -138,7 +138,7 @@ end
 # 5. Calculate the linear interpolation between the pairs of dot products using the fade function
 
 
-# Assumes point, scale, and seed are regular felts. Returns a felt in 64.61 signed format. 
+# Assumes point, scale, and seed are regular unsigned felts. Returns a felt in 64.61 signed format. 
 # scale essentially represents the desired grid-box sidelength
 func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(point : (felt,felt), scale, seed) -> (res):
     alloc_locals
@@ -152,10 +152,10 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
     let (lower_x_64x61, lower_y_64x61) = get_nearest_gridlines(point[0], point[1], scale)
 
     let (upper_x_64x61) = Math64x61_add(lower_x_64x61, Math64x61_ONE)
-    let (upper_y_64x61) = Math64x61_add(lower_x_64x61, Math64x61_ONE)
+    let (upper_y_64x61) = Math64x61_add(lower_y_64x61, Math64x61_ONE)
 
     ######### Computing the random gradient vector at each grid node #########
-    # Currently 4 hashes are computed, which is expensive. Is there a cheaper PRNG? 
+    # Currently 4 hashes are computed, which is a bit expensive. Is there an even cheaper PRNG? 
     let (lower_x_lower_y_randvec : (felt, felt)) = select_vector(lower_x_64x61, lower_y_64x61, seed)
     let (lower_x_upper_y_randvec : (felt, felt)) = select_vector(lower_x_64x61, upper_y_64x61, seed)
     let (upper_x_lower_y_randvec : (felt, felt)) = select_vector(upper_x_64x61, lower_y_64x61, seed)
@@ -181,8 +181,8 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
     let (faded1) = fade_func(diff1)
     let (faded2) = fade_func(diff2)
 
-    let (linterp_lower_x) = linterp(dot_lower_x_lower_y, dot_upper_x_lower_y, faded1)
-    let (linterp_upper_x) = linterp(dot_upper_x_upper_y, dot_upper_x_upper_y, faded1)
-    let (linterp_final) = linterp(linterp_lower_x, linterp_upper_x, faded2)
+    let (linterp_lower_y) = linterp(dot_lower_x_lower_y, dot_upper_x_lower_y, faded1)
+    let (linterp_upper_y) = linterp(dot_lower_x_upper_y, dot_upper_x_upper_y, faded1)
+    let (linterp_final) = linterp(linterp_lower_y, linterp_upper_y, faded2)
     return(res=linterp_final)
 end

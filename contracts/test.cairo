@@ -13,7 +13,8 @@ from perlin_noise import (
     dot_prod,
     vec_to_vec64x61,
     fade_func,
-    linterp
+    linterp,
+    scale_vec
 )
 
 ############# Utility functions #############
@@ -67,8 +68,13 @@ func get_linterp{range_check_ptr}(a, b, t) -> (res):
 end
 
 @view 
+func scaled_point{range_check_ptr}(point : (felt, felt), scale) -> (res : (felt, felt)):
+    return scale_vec(point, scale)
+end 
+
+@view 
 func get_noise{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(x, y) -> (res):
-    let (noiseVal) = noise_custom((x, y), 100, 69)
+    let (noiseVal) = noise_custom((x, y), 1000, 69)
     return (res=noiseVal)
 end
 

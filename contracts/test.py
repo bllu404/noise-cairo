@@ -88,10 +88,12 @@ async def test_perlin_noise():
     case3 = (await contract.get_gridlines(599, 600, 100).call()).result
     case4 = (await contract.get_gridlines(600, 599, 100).call()).result
 
-    assert(case1.x_gridline == 5 and case1.y_gridline == 6)
+    assert(case1.x_gridline == 5*FRACT_PART and case1.y_gridline == 6*FRACT_PART)
     assert(case2.x_gridline == 0 and case2.y_gridline == 0)
-    assert(case3.x_gridline == 5 and case3.y_gridline == 6)
-    assert(case4.x_gridline == 6 and case4.y_gridline == 5)
+    assert(case3.x_gridline == 5*FRACT_PART and case3.y_gridline == 6*FRACT_PART)
+    assert(case4.x_gridline == 6*FRACT_PART and case4.y_gridline == 5*FRACT_PART)
+
+    print(f"({case1.x_gridline/FRACT_PART}, {case1.y_gridline/FRACT_PART})")
     '''
 
     
@@ -147,16 +149,21 @@ async def test_perlin_noise():
     #### Testing noise function
     '''
 
+    # Vector scaling function
+    '''
+    case1 = (await contract.scaled_point((50*FRACT_PART, 50*FRACT_PART), 100*FRACT_PART).call()).result.res 
+    case2 = (await contract.scaled_point((533*FRACT_PART, 533*FRACT_PART), 100*FRACT_PART).call()).result.res 
+    case3 = (await contract.scaled_point((0*FRACT_PART, 0*FRACT_PART), 100*FRACT_PART).call()).result.res 
+    print(f"({case1[0]/FRACT_PART}, {case1[1]/FRACT_PART})")
+    print(f"({case2[0]/FRACT_PART}, {case2[1]/FRACT_PART})")
+    print(f"({case3[0]/FRACT_PART}, {case3[1]/FRACT_PART})")
+    '''
+
     #### Testing Noise Function
-    '''
-    for i in range(30):
-        noiseVal = (await contract.get_noise(0,5+5*i).call()).result.res
-        print(f"{5*i}: {get_lift(noiseVal)/FRACT_PART}")
-    '''
-    for i in range(30):
-        noiseVal = (await contract.get_noise(0,120+i).call()).result.res
-        print(f"{90+i}: {get_lift(noiseVal)/FRACT_PART}")
-    
+    for i in range(100):
+        noiseVal = (await contract.get_noise(11_500,1000+10*i).call()).result.res
+        print(f"{10*i}: {get_lift(noiseVal)/FRACT_PART}")
+
 
 
 
