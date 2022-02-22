@@ -146,11 +146,11 @@ func fade_func{range_check_ptr}(x) -> (res):
     let (x_pow4) = Math64x61_mul_unsafe(x_pow3, x)
     let (x_pow5) = Math64x61_mul_unsafe(x_pow4, x)
 
-    let (six_x_pow5) = Math64x61_mul_unsafe(6*Math64x61_FRACT_PART, x_pow5)
-    let (fifteen_x_pow4) = Math64x61_mul_unsafe(15*Math64x61_FRACT_PART, x_pow4)
-    let (ten_x_pow3) = Math64x61_mul_unsafe(10*Math64x61_FRACT_PART, x_pow3)
+    #let (six_x_pow5) = Math64x61_mul_unsafe(6*Math64x61_FRACT_PART, x_pow5)
+    #let (fifteen_x_pow4) = Math64x61_mul_unsafe(15*Math64x61_FRACT_PART, x_pow4)
+    #let (ten_x_pow3) = Math64x61_mul_unsafe(10*Math64x61_FRACT_PART, x_pow3)
 
-    return(res = six_x_pow5 - fifteen_x_pow4 + ten_x_pow3)
+    return(res = 6*x_pow5 - 15*x_pow4 + 10*x_pow3)
 end
 
 

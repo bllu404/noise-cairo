@@ -158,12 +158,12 @@ async def test_perlin_noise():
     print(f"({case2[0]/FRACT_PART}, {case2[1]/FRACT_PART})")
     print(f"({case3[0]/FRACT_PART}, {case3[1]/FRACT_PART})")
     '''
-
+    '''
     #### Testing Noise Function
     for i in range(100):
         noiseVal = (await contract.get_noise(1050,50*i).call()).result.res
         print(f"{50*i}: {get_lift(noiseVal)/FRACT_PART}")
-    
+    '''
     test = await contract.get_noise(1000,5).call()
     #test = await contract.get_hash(5,6).call()
     print(f"Num steps: {test.call_info.cairo_usage.n_steps}")
