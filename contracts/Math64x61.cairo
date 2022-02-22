@@ -74,6 +74,13 @@ func Math64x61_mul {range_check_ptr} (x: felt, y: felt) -> (res: felt):
     return (res)
 end
 
+# NO OVERFLOW CHECK
+func Math64x61_mul_unsafe {range_check_ptr} (x: felt, y: felt) -> (res: felt):
+    tempvar product = x * y
+    let (res, _) = signed_div_rem(product, Math64x61_FRACT_PART, Math64x61_BOUND)
+    return (res)
+end
+
 # Divides two fixed point values and checks for overflow before returning
 # Both values may be signed (i.e. also allows for division by negative b)
 func Math64x61_div {range_check_ptr} (x: felt, y: felt) -> (res: felt):

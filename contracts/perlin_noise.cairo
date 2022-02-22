@@ -9,6 +9,7 @@ from Math64x61 import (
     Math64x61_fromFelt,
     Math64x61_div,
     Math64x61_mul,
+    Math64x61_mul_unsafe,
     Math64x61_sqrt,
     Math64x61_add,
     Math64x61_sub,
@@ -39,11 +40,9 @@ end
 
 # a and b should be in 64.61 format, 
 func dot_prod{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (res):
-    let (x) = Math64x61_mul(a[0], b[0])
-    let (y) = Math64x61_mul(a[1], b[1])
-
-    # Addition can be 'unsafe' here since a and b are guaranteed to be small enough so as to not overflow, given their sizes
-    return (res=x+y)
+    let (x) = Math64x61_mul_unsafe(a[0], b[0])
+    let (y) = Math64x61_mul_unsafe(a[1], b[1])
+    return (res = x + y)
 end
 
 
@@ -108,9 +107,10 @@ end
 
 # Returns the offset vector (in 64.61 format) between two vectors (64.61 format expected)
 func get_offset_vec{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (offset_vec_64x61: (felt, felt)):
-    # Subtraction can be unsafe here since the diffs are guaranteed to not overflow in every case that this function is used
+    #let (diff_x) = Math64x61_sub(a[0], b[0])
+    #let (diff_y) = Math64x61_sub(a[1], b[1])
     let diff_x = a[0] - b[0]
-    let diff_y = a[1] - b[0]
+    let diff_y = a[1] - b[1]
     return (offset_vec_64x61=(diff_x, diff_y))
 end
 
@@ -130,25 +130,24 @@ end
 
 # a, b, and t should be in 64.61 fixed-point format
 func linterp{range_check_ptr}(a, b, t) -> (res):
-    # Subtraction can be unsafe here since b and a are both guaranteed to be "small" 
     let diff = b - a
-    let (t_times_diff) = Math64x61_mul(t, diff)
-    # Addition can be unsafe here for the same reason
+    let (t_times_diff) = Math64x61_mul_unsafe(t, diff)
     return (res = a + t_times_diff)
 end
 
 # x should be in 64.61 format
 func fade_func{range_check_ptr}(x) -> (res):
     let (x_pow3) = Math64x61_pow(x, 3)
-    let (x_pow4) = Math64x61_mul(x_pow3, x)
-    let (x_pow5) = Math64x61_mul(x_pow4, x)
+    let (x_pow4) = Math64x61_mul_unsafe(x_pow3, x)
+    let (x_pow5) = Math64x61_mul_unsafe(x_pow4, x)
 
-    let (six_x_pow5) = Math64x61_mul(6*Math64x61_FRACT_PART, x_pow5)
-    let (fifteen_x_pow4) = Math64x61_mul(15*Math64x61_FRACT_PART, x_pow4)
-    let (ten_x_pow3) = Math64x61_mul(10*Math64x61_FRACT_PART, x_pow3)
+    let (six_x_pow5) = Math64x61_mul_unsafe(6*Math64x61_FRACT_PART, x_pow5)
+    let (fifteen_x_pow4) = Math64x61_mul_unsafe(15*Math64x61_FRACT_PART, x_pow4)
+    let (ten_x_pow3) = Math64x61_mul_unsafe(10*Math64x61_FRACT_PART, x_pow3)
 
-    #let diff = six_x_pow5 - fifteen_x_pow4
-    return (res = six_x_pow5 - fifteen_x_pow4 + ten_x_pow3)
+    #let (diff) = Math64x61_sub(six_x_pow5, fifteen_x_pow4)
+    #return Math64x61_add(diff, ten_x_pow3)
+    return(res = six_x_pow5 - fifteen_x_pow4 + ten_x_pow3)
 end
 
 
@@ -197,8 +196,8 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
 
     #### 
     ######### Computing bilinear interpolation of the dot products #########
-    let(diff1) = Math64x61_sub(point_64x61_scaled[0], lower_x_64x61)
-    let(diff2) = Math64x61_sub(point_64x61_scaled[1], lower_y_64x61)
+    let diff1 = point_64x61_scaled[0] - lower_x_64x61
+    let diff2 = point_64x61_scaled[1] - lower_y_64x61
 
     let (faded1) = fade_func(diff1)
     let (faded2) = fade_func(diff2)
@@ -208,4 +207,3 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
     let (linterp_final) = linterp(linterp_lower_y, linterp_upper_y, faded2)
     return(res=linterp_final)
 end
-
