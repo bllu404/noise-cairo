@@ -37,7 +37,9 @@ func rand_3bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(seed
     return (bits)
 end
 
-# a and b should be in 64.61 format, 
+# a and b should be in 64.61 format
+# Operations can be unsafe since the only dot products calculated are between pre-defined gradient vectors and offset vectors, both of which
+# have small components (maximum component length is 1 for both gradients and offsets)
 func dot_prod{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (res):
     let (x) = Math64x61_mul_unsafe(a[0], b[0])
     let (y) = Math64x61_mul_unsafe(a[1], b[1])
@@ -128,6 +130,8 @@ func scale_vec{range_check_ptr}(vec : (felt, felt), scale) -> (res: (felt, felt)
 end
 
 # a, b, and t should be in 64.61 fixed-point format
+# Operations here can be unsafe since a, b, and t are all guranteed to be small
+# a and b's maximum value is around 0.5 (64.61) and t's maximum value is 1 (64.61)
 func linterp{range_check_ptr}(a, b, t) -> (res):
     let diff = b - a
     let (t_times_diff) = Math64x61_mul_unsafe(t, diff)
@@ -151,8 +155,8 @@ end
 
 
 ### Steps ###
-# 1. Find the gridlines within which the given point lies
-# 2. Compute the random vectors at each corner
+# 1. Find the gird nodes (corner) of the square within which the given point lies
+# 2. Compute the random gradient vectors at each corner
 # 3. Compute the offset vectors from each corner to the point
 # 4. Compute the dot product of the random vector and the offset vectors for each corner
 # 5. Calculate the linear interpolation between the pairs of dot products using the fade function
