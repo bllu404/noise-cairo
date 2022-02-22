@@ -13,7 +13,6 @@ from Math64x61 import (
     Math64x61_sqrt,
     Math64x61_add,
     Math64x61_sub,
-    Math64x61_pow,
     Math64x61_ONE,
     Math64x61_FRACT_PART,
     Math64x61_assert64x61
@@ -107,8 +106,8 @@ end
 
 # Returns the offset vector (in 64.61 format) between two vectors (64.61 format expected)
 func get_offset_vec{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (offset_vec_64x61: (felt, felt)):
-    #let (diff_x) = Math64x61_sub(a[0], b[0])
-    #let (diff_y) = Math64x61_sub(a[1], b[1])
+    # Operations can be unsafe here because this function is only used for offsets between a point and gridnodes.
+    # The maximum possible horizontal offset between a point and a gridnode is 1 (or -1), and the same applies to vertical distance.
     let diff_x = a[0] - b[0]
     let diff_y = a[1] - b[1]
     return (offset_vec_64x61=(diff_x, diff_y))
@@ -136,8 +135,10 @@ func linterp{range_check_ptr}(a, b, t) -> (res):
 end
 
 # x should be in 64.61 format
+# Operations here can be unsafe since x is guaranteed to be between 0 and 1 (64.61 format)
 func fade_func{range_check_ptr}(x) -> (res):
-    let (x_pow3) = Math64x61_pow(x, 3)
+    let (x_pow2) = Math64x61_mul_unsafe(x, x)
+    let (x_pow3) = Math64x61_mul_unsafe(x_pow2, x)
     let (x_pow4) = Math64x61_mul_unsafe(x_pow3, x)
     let (x_pow5) = Math64x61_mul_unsafe(x_pow4, x)
 
@@ -145,8 +146,6 @@ func fade_func{range_check_ptr}(x) -> (res):
     let (fifteen_x_pow4) = Math64x61_mul_unsafe(15*Math64x61_FRACT_PART, x_pow4)
     let (ten_x_pow3) = Math64x61_mul_unsafe(10*Math64x61_FRACT_PART, x_pow3)
 
-    #let (diff) = Math64x61_sub(six_x_pow5, fifteen_x_pow4)
-    #return Math64x61_add(diff, ten_x_pow3)
     return(res = six_x_pow5 - fifteen_x_pow4 + ten_x_pow3)
 end
 
