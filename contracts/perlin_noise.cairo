@@ -8,6 +8,7 @@ from Math64x61 import (
     Math64x61_toFelt,
     Math64x61_fromFelt,
     Math64x61_div,
+    Math64x61_div_unsafe,
     Math64x61_mul,
     Math64x61_mul_unsafe,
     Math64x61_sqrt,
@@ -22,13 +23,11 @@ from Math64x61 import (
 const HALF_SQRT2 = 1630477227105714176
 const NEG_HALF_SQRT2 = -HALF_SQRT2
 const Math64x61_NEG_ONE = -Math64x61_ONE
-const Math64x61_TWO = 2 * Math64x61_FRACT_PART
 
 # pseudo-randomly returns a felt in the range 0-7 based on the given seed.
 func rand_3bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(seed1, seed2, seed3) -> (bits):
     alloc_locals
-    local pedersen_ptr : HashBuiltin* = pedersen_ptr 
-    local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
+
     let (first_hash) = hash2{hash_ptr=pedersen_ptr}(seed1, seed2)
     let (final_hash) = hash2{hash_ptr=pedersen_ptr}(first_hash, seed3)
 
@@ -62,7 +61,7 @@ func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x
     alloc_locals
     let (choice) = rand_3bits(x,y,seed)
 
-    # This is ugly but can't be put in `dw` array since some values are greater than PRIME//2. 
+    # This is ugly but can't be put in `dw` array since some values are greater than PRIME//2. Most likely need to wait for a compiler fix
     if choice == 0:
         tempvar vec : (felt, felt) = (NEG_HALF_SQRT2, NEG_HALF_SQRT2)
     else: 
@@ -90,6 +89,7 @@ func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x
                     end 
                 end
             end 
+            
         end 
     end
 
@@ -124,8 +124,9 @@ end
 # vec and scale should be in 64.61 format
 func scale_vec{range_check_ptr}(vec : (felt, felt), scale) -> (res: (felt, felt)):
     alloc_locals
-    let (x_scaled) = Math64x61_div(vec[0], scale)
-    let (y_scaled) = Math64x61_div(vec[1], scale)
+    # Division can be unsafe here since overflow could only occur if scale is much less than 2^64, but it's guaranteed to be >=2^64
+    let (x_scaled) = Math64x61_div_unsafe(vec[0], scale)
+    let (y_scaled) = Math64x61_div_unsafe(vec[1], scale)
     return (res=(x_scaled, y_scaled))
 end
 
@@ -146,10 +147,6 @@ func fade_func{range_check_ptr}(x) -> (res):
     let (x_pow4) = Math64x61_mul_unsafe(x_pow3, x)
     let (x_pow5) = Math64x61_mul_unsafe(x_pow4, x)
 
-    #let (six_x_pow5) = Math64x61_mul_unsafe(6*Math64x61_FRACT_PART, x_pow5)
-    #let (fifteen_x_pow4) = Math64x61_mul_unsafe(15*Math64x61_FRACT_PART, x_pow4)
-    #let (ten_x_pow3) = Math64x61_mul_unsafe(10*Math64x61_FRACT_PART, x_pow3)
-
     return(res = 6*x_pow5 - 15*x_pow4 + 10*x_pow3)
 end
 
@@ -167,7 +164,7 @@ end
 func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(point : (felt,felt), scale, seed) -> (res):
     alloc_locals
 
-    let (point_64x61) = vec_to_vec64x61(point)
+    let (point_64x61 : (felt, felt)) = vec_to_vec64x61(point)
     let (scale_64x61) = Math64x61_fromFelt(scale)
 
     # Scaling down the point vector so that, relative to it, each gridbox has a sidelength of 1. 

@@ -93,6 +93,16 @@ func Math64x61_div {range_check_ptr} (x: felt, y: felt) -> (res: felt):
     return (res = res_u * div_sign)
 end
 
+# NO OVERFLOW CHECK
+func Math64x61_div_unsafe {range_check_ptr} (x: felt, y: felt) -> (res: felt):
+    alloc_locals
+    let (div) = abs_value(y)
+    let (div_sign) = sign(y)
+    tempvar product = x * Math64x61_FRACT_PART
+    let (res_u, _) = signed_div_rem(product, div, Math64x61_BOUND)
+    return (res = res_u * div_sign)
+end
+
 # Calclates the value of x^y and checks for overflow before returning
 # x is a 64x61 fixed point value
 # y is a standard felt (int)
