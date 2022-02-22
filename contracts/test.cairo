@@ -4,7 +4,7 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.hash import hash2
 from Math64x61 import Math64x61_fromFelt
 from perlin_noise import (
-    rand_2bits, 
+    rand_3bits, 
     select_vector, 
     get_nearest_gridlines,
     noise_custom,
@@ -19,8 +19,8 @@ from perlin_noise import (
 ############# Utility functions #############
 
 @view 
-func get_rand_2bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*} (seed1, seed2, seed3) -> (bits): 
-    return rand_2bits(seed1, seed2, seed3)
+func get_rand_3bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*} (seed1, seed2, seed3) -> (bits): 
+    return rand_3bits(seed1, seed2, seed3)
 end
 
 @view

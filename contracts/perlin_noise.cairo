@@ -21,18 +21,19 @@ from Math64x61 import (
 # 1/sqrt(2), in 64.61 fixed-point format
 const HALF_SQRT2 = 1630477227105714176
 const NEG_HALF_SQRT2 = -HALF_SQRT2
+const Math64x61_NEG_ONE = -Math64x61_ONE
 const Math64x61_TWO = 2 * Math64x61_FRACT_PART
 
-# pseudo-randomly returns 0, 1, 2, or 3 based on the given seed.
-func rand_2bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(seed1, seed2, seed3) -> (bits):
+# pseudo-randomly returns a felt in the range 0-7 based on the given seed.
+func rand_3bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(seed1, seed2, seed3) -> (bits):
     alloc_locals
     local pedersen_ptr : HashBuiltin* = pedersen_ptr 
     local bitwise_ptr : BitwiseBuiltin* = bitwise_ptr
     let (first_hash) = hash2{hash_ptr=pedersen_ptr}(seed1, seed2)
     let (final_hash) = hash2{hash_ptr=pedersen_ptr}(first_hash, seed3)
 
-    # bit-representation of 3 is 00...011, therefore ANDing with a hash yields the first 2 bits of the hash
-    let (bits) = bitwise_and(final_hash, 3) 
+    # bit-representation of 7 is 00...0111, therefore ANDing with a hash yields the first 3 bits of the hash
+    let (bits) = bitwise_and(final_hash, 7) 
     return (bits)
 end
 
@@ -40,8 +41,9 @@ end
 func dot_prod{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (res):
     let (x) = Math64x61_mul(a[0], b[0])
     let (y) = Math64x61_mul(a[1], b[1])
-    let (res) = Math64x61_add(x, y)
-    return (res)
+
+    # Addition can be 'unsafe' here since a and b are guaranteed to be small enough so as to not overflow, given their sizes
+    return (res=x+y)
 end
 
 
@@ -58,8 +60,9 @@ end
 # 1 = 1/sqrt(2), -1 = -1/sqrt(2)
 func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x, y, seed) -> (vec: (felt, felt)):
     alloc_locals
-    let (choice) = rand_2bits(x,y,seed)
+    let (choice) = rand_3bits(x,y,seed)
 
+    # This is ugly but can't be put in `dw` array since some values are greater than PRIME//2. 
     if choice == 0:
         tempvar vec : (felt, felt) = (NEG_HALF_SQRT2, NEG_HALF_SQRT2)
     else: 
@@ -69,7 +72,23 @@ func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x
             if choice == 2:
                 tempvar vec : (felt, felt) = (HALF_SQRT2, NEG_HALF_SQRT2)
             else:
-                tempvar vec : (felt,felt) = (HALF_SQRT2, HALF_SQRT2)
+                if choice == 3:
+                    tempvar vec : (felt,felt) = (HALF_SQRT2, HALF_SQRT2)
+                else:
+                    if choice == 4:
+                        tempvar vec : (felt,felt) = (Math64x61_ONE, 0)
+                    else:
+                        if choice == 5:
+                            tempvar vec : (felt,felt) = (0, Math64x61_ONE)
+                        else:
+                            if choice == 6:
+                                tempvar vec : (felt,felt) = (0, Math64x61_NEG_ONE)
+                            else:
+                                tempvar vec : (felt,felt) = (Math64x61_NEG_ONE, 0)
+                            end 
+                        end 
+                    end 
+                end
             end 
         end 
     end
@@ -89,16 +108,10 @@ end
 
 # Returns the offset vector (in 64.61 format) between two vectors (64.61 format expected)
 func get_offset_vec{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (offset_vec_64x61: (felt, felt)):
-    let (diff_x) = Math64x61_sub(a[0], b[0])
-    let (diff_y) = Math64x61_sub(a[1], b[1])
-
-    # The maximum value of the noise function occurs when the point is in the exact middle of a grid-square.
-    # However the length of all offset vectors is 0.5 if the point is in this position. Therefore we must scale
-    # The offset vectors by 2 to ensure that the final result is between -1 and 1
-    let (scaled_diff_x) = Math64x61_mul(diff_x, Math64x61_TWO)
-    let (scaled_diff_y) = Math64x61_mul(diff_y, Math64x61_TWO)
-
-    return (offset_vec_64x61=(scaled_diff_x, scaled_diff_y))
+    # Subtraction can be unsafe here since the diffs are guaranteed to not overflow in every case that this function is used
+    let diff_x = a[0] - b[0]
+    let diff_y = a[1] - b[0]
+    return (offset_vec_64x61=(diff_x, diff_y))
 end
 
 func vec_to_vec64x61{range_check_ptr}(vec : (felt, felt)) -> (res: (felt, felt)):
@@ -117,9 +130,11 @@ end
 
 # a, b, and t should be in 64.61 fixed-point format
 func linterp{range_check_ptr}(a, b, t) -> (res):
-    let (diff) = Math64x61_sub(b, a)
+    # Subtraction can be unsafe here since b and a are both guaranteed to be "small" 
+    let diff = b - a
     let (t_times_diff) = Math64x61_mul(t, diff)
-    return Math64x61_add(a, t_times_diff)
+    # Addition can be unsafe here for the same reason
+    return (res = a + t_times_diff)
 end
 
 # x should be in 64.61 format
@@ -127,11 +142,13 @@ func fade_func{range_check_ptr}(x) -> (res):
     let (x_pow3) = Math64x61_pow(x, 3)
     let (x_pow4) = Math64x61_mul(x_pow3, x)
     let (x_pow5) = Math64x61_mul(x_pow4, x)
+
     let (six_x_pow5) = Math64x61_mul(6*Math64x61_FRACT_PART, x_pow5)
     let (fifteen_x_pow4) = Math64x61_mul(15*Math64x61_FRACT_PART, x_pow4)
     let (ten_x_pow3) = Math64x61_mul(10*Math64x61_FRACT_PART, x_pow3)
-    let (diff) = Math64x61_sub(six_x_pow5, fifteen_x_pow4)
-    return Math64x61_add(diff, ten_x_pow3)
+
+    #let diff = six_x_pow5 - fifteen_x_pow4
+    return (res = six_x_pow5 - fifteen_x_pow4 + ten_x_pow3)
 end
 
 
@@ -191,3 +208,4 @@ func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, ra
     let (linterp_final) = linterp(linterp_lower_y, linterp_upper_y, faded2)
     return(res=linterp_final)
 end
+
