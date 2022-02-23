@@ -101,8 +101,9 @@ end
 func get_nearest_gridlines{range_check_ptr}(x, y, scale) -> (lower_x_64x61, lower_y_64x61):
     let (lower_x, _) = unsigned_div_rem(x, scale)
     let (lower_y, _) = unsigned_div_rem(y, scale)
-    let (lower_x_64x61) = Math64x61_fromFelt(lower_x)
-    let (lower_y_64x61) = Math64x61_fromFelt(lower_y)
+    # Conversion to 64.61 can be unsafe here since both scale and x and y are guaranteed to be valid 64.61 numbers
+    let lower_x_64x61 = lower_x * Math64x61_FRACT_PART
+    let lower_y_64x61 = lower_y * Math64x61_FRACT_PART
     return (lower_x_64x61, lower_y_64x61)
 end
 
