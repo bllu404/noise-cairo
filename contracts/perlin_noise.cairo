@@ -41,20 +41,8 @@ func dot_prod{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (res):
     return (res = x + y)
 end
 
-
-#func get_half_sqrt2{range_check_ptr}() -> (half_sqrt2):
-#    alloc_locals
-#    local range_check_ptr = range_check_ptr
-#
-#    let (two_64x61) = Math64x61_fromFelt(2)
-#    let (sqrt2) = Math64x61_sqrt(two_64x61)
-#    return Math64x61_div(Math64x61_ONE, sqrt2)
-#end
-
 # x and y refer to an intersection of the gridlines of the perlin noise grid, seed is an additional variable for randomness
 # 1 = 1/sqrt(2), -1 = -1/sqrt(2)
-
-
 func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x, y, seed) -> (vec: (felt, felt)):
     alloc_locals
     let (choice) = rand_3bits(x,y,seed)
@@ -88,16 +76,6 @@ func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x
     dw 0
 end
 
-func get_data() -> (data : felt*):
-    let (data_address) = get_label_location(data_start)
-    return (data=cast(data_address, felt*))
-
-    data_start:
-    dw 1
-    dw 22
-    dw 333
-    dw 4444
-end
 # Scale represents the ratio of gridlines to coordinates. If scale == 1, then there is 1 gridline for every coordinate. 
 # If scale == 100, then there is a gridline on every 100th coordinate. 
 func get_nearest_gridlines{range_check_ptr}(x, y, scale) -> (lower_x_64x61, lower_y_64x61):
