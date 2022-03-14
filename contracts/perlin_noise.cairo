@@ -4,7 +4,8 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.hash import hash2
 from starkware.cairo.common.bitwise import bitwise_and
 from starkware.cairo.common.math import unsigned_div_rem
-from contracts.Math64x61 import (
+from starkware.cairo.common.registers import get_label_location
+from Math64x61 import (
     Math64x61_fromFelt,
     Math64x61_div_unsafe,
     Math64x61_mul_unsafe,
@@ -52,45 +53,51 @@ end
 
 # x and y refer to an intersection of the gridlines of the perlin noise grid, seed is an additional variable for randomness
 # 1 = 1/sqrt(2), -1 = -1/sqrt(2)
+
+
 func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x, y, seed) -> (vec: (felt, felt)):
     alloc_locals
     let (choice) = rand_3bits(x,y,seed)
 
-    # This is ugly but can't be put in `dw` array since some values are greater than PRIME//2. Most likely need to wait for a compiler fix
-    if choice == 0:
-        tempvar vec : (felt, felt) = (NEG_HALF_SQRT2, NEG_HALF_SQRT2)
-    else: 
-        if choice == 1:
-            tempvar vec : (felt, felt) = (NEG_HALF_SQRT2, HALF_SQRT2)
-        else: 
-            if choice == 2:
-                tempvar vec : (felt, felt) = (HALF_SQRT2, NEG_HALF_SQRT2)
-            else:
-                if choice == 3:
-                    tempvar vec : (felt,felt) = (HALF_SQRT2, HALF_SQRT2)
-                else:
-                    if choice == 4:
-                        tempvar vec : (felt,felt) = (Math64x61_ONE, 0)
-                    else:
-                        if choice == 5:
-                            tempvar vec : (felt,felt) = (0, Math64x61_ONE)
-                        else:
-                            if choice == 6:
-                                tempvar vec : (felt,felt) = (0, Math64x61_NEG_ONE)
-                            else:
-                                tempvar vec : (felt,felt) = (Math64x61_NEG_ONE, 0)
-                            end 
-                        end 
-                    end 
-                end
-            end 
-            
-        end 
-    end
+    let(gradients_address) = get_label_location(gradients_start)
+    return(vec=([gradients_address + 2*choice], [gradients_address + 2*choice + 1]))
 
-    return (vec)
+    gradients_start:
+    dw NEG_HALF_SQRT2
+    dw NEG_HALF_SQRT2
+
+    dw NEG_HALF_SQRT2
+    dw HALF_SQRT2
+
+    dw HALF_SQRT2
+    dw NEG_HALF_SQRT2
+
+    dw HALF_SQRT2
+    dw HALF_SQRT2
+
+    dw Math64x61_ONE
+    dw 0
+
+    dw 0
+    dw Math64x61_ONE
+
+    dw 0
+    dw Math64x61_NEG_ONE
+
+    dw Math64x61_NEG_ONE
+    dw 0
 end
 
+func get_data() -> (data : felt*):
+    let (data_address) = get_label_location(data_start)
+    return (data=cast(data_address, felt*))
+
+    data_start:
+    dw 1
+    dw 22
+    dw 333
+    dw 4444
+end
 # Scale represents the ratio of gridlines to coordinates. If scale == 1, then there is 1 gridline for every coordinate. 
 # If scale == 100, then there is a gridline on every 100th coordinate. 
 func get_nearest_gridlines{range_check_ptr}(x, y, scale) -> (lower_x_64x61, lower_y_64x61):
