@@ -9,7 +9,6 @@ from Math64x61 import (
     Math64x61_fromFelt,
     Math64x61_div_unsafe,
     Math64x61_mul_unsafe,
-    #Math64x61_sqrt,
     Math64x61_add,
     Math64x61_ONE,
     Math64x61_FRACT_PART
@@ -35,14 +34,13 @@ end
 # a and b should be in 64.61 format
 # Operations can be unsafe since the only dot products calculated are between pre-defined gradient vectors and offset vectors, both of which
 # have small components (maximum component length is 1 for both gradients and offsets)
-func dot_prod{range_check_ptr}(a : (felt, felt), b : (felt, felt)) -> (res):
+func dot_prod(a : (felt, felt), b : (felt, felt)) -> (res):
     let (x) = Math64x61_mul_unsafe(a[0], b[0])
     let (y) = Math64x61_mul_unsafe(a[1], b[1])
     return (res = x + y)
 end
 
 # x and y refer to an intersection of the gridlines of the perlin noise grid, seed is an additional variable for randomness
-# 1 = 1/sqrt(2), -1 = -1/sqrt(2)
 func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x, y, seed) -> (vec: (felt, felt)):
     alloc_locals
     let (choice) = rand_3bits(x,y,seed)
