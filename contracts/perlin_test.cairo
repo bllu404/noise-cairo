@@ -7,13 +7,14 @@ from perlin2D import (
     rand_3bits, 
     select_vector, 
     get_nearest_gridlines,
-    noise_custom,
+    noise2D_custom,
     get_offset_vec,
     dot_prod,
     vec_to_vec64x61,
     fade_func,
     linterp,
-    scale_vec
+    scale_vec,
+    rand_num
 )
 
 ############# Utility functions #############
@@ -23,6 +24,11 @@ func get_rand_3bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*} 
     return rand_3bits(seed1, seed2, seed3)
 end
 
+@view 
+func get_rand_num{range_check_ptr} (seed1, seed2, seed3) -> (bits): 
+    return rand_num(seed1, seed2, seed3)
+end
+
 @view
 func get_hash{pedersen_ptr : HashBuiltin*, range_check_ptr} (seed1, seed2) -> (hash):
     let (hash) = hash2{hash_ptr=pedersen_ptr}(seed1, seed2)
@@ -30,7 +36,7 @@ func get_hash{pedersen_ptr : HashBuiltin*, range_check_ptr} (seed1, seed2) -> (h
 end
 
 @view 
-func get_random_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*} (x, y, seed) -> (res :(felt,felt)):
+func get_random_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr} (x, y, seed) -> (res :(felt,felt)):
     return select_vector(x, y, seed)
 end
 
@@ -73,7 +79,7 @@ end
 
 @view 
 func get_noise{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(x, y) -> (res):
-    let (noise_val) = noise_custom((x, y), 100, 69)
+    let (noise_val) = noise2D_custom((x, y), 100, 69)
     return (res=noise_val)
 end
 

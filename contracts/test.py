@@ -164,12 +164,21 @@ async def test_perlin_noise():
     '''
     for i in range(100):
         noiseVal = (await contract.get_noise(6050,5*i).invoke()).result.res
-        print(f"{5*i}: {get_lift(noiseVal)/FRACT_PART}")
-    '''
+        #print(f"{5*i}: {get_lift(noiseVal)/FRACT_PART}")
+        print(noiseVal)
+    
+    
     test = await contract.get_noise(1000,5).invoke()
     #test = await contract.get_hash(5,6).call()
     print(f"Num steps: {test.call_info.execution_resources.n_steps}")
+    '''
     
+    for i in range(20):
+        rand = (await contract.get_rand_num(50+i,40+i,69).invoke()).result.bits
+        rand = (await contract.get_rand_num(51+i,40+i,69).invoke()).result.bits
+        rand = (await contract.get_rand_num(50+i,41+i,69).invoke()).result.bits
+        rand = (await contract.get_rand_num(51+i,41+i,69).invoke()).result.bits
+        print(rand)
 
 
     

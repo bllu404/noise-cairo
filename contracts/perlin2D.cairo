@@ -5,6 +5,7 @@ from starkware.cairo.common.hash import hash2
 from starkware.cairo.common.bitwise import bitwise_and
 from starkware.cairo.common.math import unsigned_div_rem
 from starkware.cairo.common.registers import get_label_location
+from permutation_table import p
 from Math64x61 import (
     Math64x61_fromFelt,
     Math64x61_div_unsafe,
@@ -32,6 +33,17 @@ func rand_3bits{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(seed
     return (bits)
 end
 
+func rand_num{range_check_ptr}(seed1, seed2, seed3) -> (num):
+    let (_, seed1_mod) = unsigned_div_rem(seed1, 256)
+
+    let (p1) = p(seed1_mod)
+    let (_, temp1) = unsigned_div_rem(p1 + seed2, 256)
+    let (p2) = p(temp1)
+    let (_, temp2) = unsigned_div_rem(p2 + seed3, 256)
+    let (p3) = p(temp2)
+    let (_, num) = unsigned_div_rem(p3, 8)
+    return (num)
+end
 # a and b should be in 64.61 format
 # Operations can be unsafe since the only dot products calculated are between pre-defined gradient vectors and offset vectors, both of which
 # have small components (maximum component length is 1 for both gradients and offsets)
@@ -43,7 +55,7 @@ end
 
 # x and y refer to an intersection of the gridlines of the perlin noise grid, seed is an additional variable for randomness
 # 1 = 1/sqrt(2), -1 = -1/sqrt(2)
-func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*}(x, y, seed) -> (vec: (felt, felt)):
+func select_vector{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(x, y, seed) -> (vec: (felt, felt)):
     alloc_locals
     let (choice) = rand_3bits(x,y,seed)
 
@@ -142,7 +154,7 @@ end
 
 # Assumes point, scale, and seed are regular unsigned felts. Returns a felt in 64.61 signed format. 
 # scale essentially represents the desired grid-box sidelength
-func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(point : (felt,felt), scale, seed) -> (res):
+func noise2D_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(point : (felt,felt), scale, seed) -> (res):
     alloc_locals
 
     let (point_64x61 : (felt, felt)) = vec_to_vec64x61(point)
