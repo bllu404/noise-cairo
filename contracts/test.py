@@ -5,7 +5,7 @@ from starkware.starknet.testing.starknet import Starknet
 
 # The path to the contract source code.
 CONTRACT_FILE = os.path.join(
-    os.path.dirname(__file__), "test.cairo")
+    os.path.dirname(__file__), "perlin_test.cairo")
 
 
 # The testing library uses python's asyncio. So the following
@@ -168,7 +168,7 @@ async def test_perlin_noise():
     '''
     test = await contract.get_noise(1000,5).invoke()
     #test = await contract.get_hash(5,6).call()
-    print(f"Num steps: {test.call_info.execution_resources}")
+    print(f"Num steps: {test.call_info.execution_resources.n_steps}")
     
 
 

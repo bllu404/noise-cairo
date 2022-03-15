@@ -3,7 +3,7 @@
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.hash import hash2
 from Math64x61 import Math64x61_fromFelt
-from perlin_noise import (
+from perlin2D import (
     rand_3bits, 
     select_vector, 
     get_nearest_gridlines,
