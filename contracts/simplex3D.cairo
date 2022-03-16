@@ -1,3 +1,5 @@
+# Reference implementation: https://weber.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf
+
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
@@ -38,6 +40,7 @@ func floor{range_check_ptr}(a) -> (res):
     return (res = a_felt * Math64x61_FRACT_PART)
 end
 
+# This is only a view function for testing purposes. Should be removed in prod unless desired.
 @view
 func noise3D_custom{range_check_ptr}(x,y,z, scale, seed) -> (noise):
     alloc_locals
