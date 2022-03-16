@@ -4,7 +4,7 @@ from starkware.cairo.common.cairo_builtins import HashBuiltin, BitwiseBuiltin
 from starkware.cairo.common.hash import hash2
 from starkware.cairo.common.bitwise import bitwise_and
 from starkware.cairo.common.math import unsigned_div_rem
-from starkware.cairo.common.math_cmp import is_le
+from starkware.cairo.common.math_cmp import is_le, is_nn
 from starkware.cairo.common.registers import get_label_location
 from permutation_table import p 
 
@@ -77,59 +77,59 @@ func noise3D_custom{range_check_ptr}(x,y,z, scale, seed) -> (noise):
         if temp != 0:
             assert i1 = 0
             assert j1 = 0
-            assert k1 = 1
+            assert k1 = Math64x61_ONE
 
             assert i2 = 0
-            assert j2 = 1
-            assert k2 = 1
+            assert j2 = Math64x61_ONE
+            assert k2 = Math64x61_ONE
         else:
             let (temp) = is_le(x0, z0)
             if temp != 0:
                 assert i1 = 0
-                assert j1 = 1
+                assert j1 = Math64x61_ONE
                 assert k1 = 0
 
                 assert i2 = 0
-                assert j2 = 1
-                assert k2 = 1
+                assert j2 = Math64x61_ONE
+                assert k2 = Math64x61_ONE
             else:
                 assert i1 = 0
-                assert j1 = 1
+                assert j1 = Math64x61_ONE
                 assert k1 = 0
 
-                assert i2 = 1
-                assert j2 = 1
+                assert i2 = Math64x61_ONE
+                assert j2 = Math64x61_ONE
                 assert k2 = 0
             end
         end
     else:
         let (temp) = is_le(z0, y0)
         if temp != 0:
-            assert i1 = 1
+            assert i1 = Math64x61_ONE
             assert j1 = 0
             assert k1 = 0
 
-            assert i2 = 1
-            assert j2 = 1
+            assert i2 = Math64x61_ONE
+            assert j2 = Math64x61_ONE
             assert k2 = 0
         else:
             let (temp) = is_le(z0, x0)
             if temp != 0:
-                assert i1 = 1
+                assert i1 = Math64x61_ONE
                 assert j1 = 0
                 assert k1 = 0
 
-                assert i2 = 1
+                assert i2 = Math64x61_ONE
                 assert j2 = 0
-                assert k2 = 1
+                assert k2 = Math64x61_ONE
             else:
                 assert i1 = 0
                 assert j1 = 0
-                assert k1 = 1
+                assert k1 = Math64x61_ONE
 
-                assert i2 = 1
+                assert i2 = Math64x61_ONE
                 assert j2 = 0
-                assert k2 = 1
+                assert k2 = Math64x61_ONE
             end
         end
     end
@@ -143,15 +143,15 @@ func noise3D_custom{range_check_ptr}(x,y,z, scale, seed) -> (noise):
     tempvar y2 = y0 - j2 + 2*G 
     tempvar z2 = z0 - k2 + 2*G
 
-    tempvar x3 = x0 - 1 + 3*G 
-    tempvar y3 = y0 - 1 + 3*G 
-    tempvar z3 = z0 - 1 + 3*G
+    tempvar x3 = x0 - Math64x61_ONE + 3*G 
+    tempvar y3 = y0 - Math64x61_ONE + 3*G 
+    tempvar z3 = z0 - Math64x61_ONE + 3*G
 
     # Getting the gradient vectors of each vertex of the simplex.
     let (g0 : Point) = select_vector(i,j,k, seed)
     let (g1 : Point) = select_vector(i + i1,j + j1,k + k1, seed)
     let (g2 : Point) = select_vector(i + i2,j + j2,k + k2, seed)
-    let (g3 : Point) = select_vector(i + 1,j + 1,k + 1, seed)
+    let (g3 : Point) = select_vector(i + Math64x61_ONE,j + Math64x61_ONE,k + Math64x61_ONE, seed)
 
     # Calculating the contribution of each vertex
     let (n0) = get_contribution(x0, y0, z0, g0)
@@ -171,15 +171,15 @@ func get_contribution{range_check_ptr}(x,y,z, g : Point) -> (contribution):
 
     tempvar t = R_SQUARED - x_squared - y_squared - z_squared
 
-    let (temp) = is_le(t, 0)
+    let (temp) = is_nn(t)
     if temp != 0:
-        return (contribution=0)
-    else:
         let (t_squared) = Math64x61_mul_unsafe(t,t)
         let (t_pow4) = Math64x61_mul_unsafe(t_squared, t_squared)
         let (dot_prod) = dot((x,y,z), g)
 
         return Math64x61_mul_unsafe(dot_prod, t_pow4)
+    else:
+        return (contribution=0)
     end
 end
 
@@ -205,51 +205,51 @@ func select_vector{range_check_ptr}(x, y, z, seed) -> (vec: Point):
     return(vec=(x=[gradients_address + 3*choice], y=[gradients_address + 3*choice + 1], z=[gradients_address + 3*choice + 2]))
 
     gradients_start:
-    dw 1
-    dw 1
+    dw Math64x61_ONE
+    dw Math64x61_ONE
     dw 0
 
-    dw -1
-    dw 1
+    dw -Math64x61_ONE
+    dw Math64x61_ONE
     dw 0
 
-    dw 1
-    dw -1
+    dw Math64x61_ONE
+    dw -Math64x61_ONE
     dw 0
     
-    dw -1
-    dw -1
+    dw -Math64x61_ONE
+    dw -Math64x61_ONE
     dw 0
 
-    dw 1
+    dw Math64x61_ONE
     dw 0 
-    dw 1
+    dw Math64x61_ONE
 
-    dw -1 
+    dw -Math64x61_ONE
     dw 0 
-    dw 1 
+    dw Math64x61_ONE
 
-    dw 1 
+    dw Math64x61_ONE 
     dw 0
-    dw -1
+    dw -Math64x61_ONE
 
-    dw -1
+    dw -Math64x61_ONE
     dw 0
-    dw -1
+    dw -Math64x61_ONE
 
     dw 0
-    dw 1
-    dw 1
+    dw Math64x61_ONE
+    dw Math64x61_ONE
     
     dw 0
-    dw -1
-    dw -1
+    dw -Math64x61_ONE
+    dw -Math64x61_ONE
 
     dw 0
-    dw 1
-    dw -1
+    dw Math64x61_ONE
+    dw -Math64x61_ONE
 
     dw 0 
-    dw -1
-    dw 1
+    dw -Math64x61_ONE
+    dw Math64x61_ONE
 end

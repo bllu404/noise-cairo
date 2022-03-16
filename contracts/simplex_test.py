@@ -22,6 +22,7 @@ HALF_SQRT2 = 1/sqrt(2)
 def get_lift(x):
     return x if x < 2**128 else x - CAIRO_PRIME
 
+
 # Gets integer lift of a 2d vector tuple
 def get_vec_lift(x):
     x_0 = get_lift(x[0])
@@ -31,8 +32,11 @@ def get_vec_lift(x):
 def get_decimal_num(x):
     return get_lift(x)/FRACT_PART
 
+def get_decimal_vec(x):
+    return (get_decimal_num(x[0]), get_decimal_num(x[1]), get_decimal_num(x[2]))
+
 @pytest.mark.asyncio
-async def test_perlin_noise():
+async def test_simplex_noise():
     
     # Create a new Starknet class that simulates the StarkNet
     # system.
@@ -43,12 +47,28 @@ async def test_perlin_noise():
         source=CONTRACT_FILE
     )
 
-    print()
+    # Along x-axis
+    for i in range(20):
+        print()
+        test = await contract.noise3D_custom(100+i,100,100, 100, 69).invoke()
+        print(f"Output: {get_decimal_num(test.result.noise)}")
+        print(f"Num steps: {test.call_info.execution_resources.n_steps}")
 
-    test = await contract.noise3D_custom(100,100,100, 200, 69).invoke()
-    #test = await contract.get_hash(5,6).call()
-    print(f"Output: {get_decimal_num(test.result.noise)}")
-    print(f"Num steps: {test.call_info.execution_resources.n_steps}")
+    # Along y-axis
+    for i in range(20):
+        print()
+        test = await contract.noise3D_custom(100,100+i,100, 100, 69).invoke()
+        print(f"Output: {get_decimal_num(test.result.noise)}")
+        print(f"Num steps: {test.call_info.execution_resources.n_steps}")
+
+    # Along z-axis
+    for i in range(20):
+        print()
+        test = await contract.noise3D_custom(100,100+i,100+i, 100, 69).invoke()
+        print(f"Output: {get_decimal_num(test.result.noise)}")
+        print(f"Num steps: {test.call_info.execution_resources.n_steps}")
+
+    
     
 
 
