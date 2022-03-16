@@ -25,7 +25,7 @@ const G = 384307168202282325 #1/6 in 64.61 format - Factor used to transform ske
 
 const R_SQUARED = 1383505805528216371 # 0.6
 
-func dot(a : Point, b : Point) -> (res):
+func dot{range_check_ptr}(a : Point, b : Point) -> (res):
     let (x) = Math64x61_mul_unsafe(a[0], b[0])
     let (y) = Math64x61_mul_unsafe(a[1], b[1])
     let (z) = Math64x61_mul_unsafe(a[2], b[2])
@@ -33,12 +33,13 @@ func dot(a : Point, b : Point) -> (res):
 end
 
 # Returns only the integer part of a 64.61 bit number, in 64.61 bit format
-func floor(a) -> (res):
+func floor{range_check_ptr}(a) -> (res):
     let (a_felt) = Math64x61_toFelt(a)
     return (res = a_felt * Math64x61_FRACT_PART)
 end
 
-func noise3D_custom{pedersen_ptr : HashBuiltin, range_check_ptr}(x,y,z, scale, seed) -> (noise):
+@view
+func noise3D_custom{range_check_ptr}(x,y,z, scale, seed) -> (noise):
     alloc_locals
     let (x_64x61) = Math64x61_fromFelt(x)
     let (y_64x61) = Math64x61_fromFelt(y)
@@ -62,16 +63,18 @@ func noise3D_custom{pedersen_ptr : HashBuiltin, range_check_ptr}(x,y,z, scale, s
     tempvar y0 = y_scaled - j + unskew_factor
     tempvar z0 = z_scaled - k + unskew_factor
 
-    tempvar i1
-    tempvar j1
-    tempvar k1
-    tempvar i2
-    tempvar j2
-    tempvar k2
+    local i1
+    local j1
+    local k1
+    local i2
+    local j2
+    local k2
 
     # Traversing the cube to find the simplex the point is in
-    if is_le(x0, y0) != 0:
-        if is_le(y0, z0) != 0:
+    let (temp) = is_le(x0, y0) 
+    if temp != 0:
+        let (temp) = is_le(y0, z0)
+        if temp != 0:
             assert i1 = 0
             assert j1 = 0
             assert k1 = 1
@@ -80,7 +83,8 @@ func noise3D_custom{pedersen_ptr : HashBuiltin, range_check_ptr}(x,y,z, scale, s
             assert j2 = 1
             assert k2 = 1
         else:
-            if is_le(x0, z0) != 0:
+            let (temp) = is_le(x0, z0)
+            if temp != 0:
                 assert i1 = 0
                 assert j1 = 1
                 assert k1 = 0
@@ -99,7 +103,8 @@ func noise3D_custom{pedersen_ptr : HashBuiltin, range_check_ptr}(x,y,z, scale, s
             end
         end
     else:
-        if is_le(z0, y0) != 0:
+        let (temp) = is_le(z0, y0)
+        if temp != 0:
             assert i1 = 1
             assert j1 = 0
             assert k1 = 0
@@ -108,7 +113,8 @@ func noise3D_custom{pedersen_ptr : HashBuiltin, range_check_ptr}(x,y,z, scale, s
             assert j2 = 1
             assert k2 = 0
         else:
-            if is_le(z0, x0) != 0:
+            let (temp) = is_le(z0, x0)
+            if temp != 0:
                 assert i1 = 1
                 assert j1 = 0
                 assert k1 = 0
@@ -138,8 +144,8 @@ func noise3D_custom{pedersen_ptr : HashBuiltin, range_check_ptr}(x,y,z, scale, s
     tempvar z2 = z0 - k2 + 2*G
 
     tempvar x3 = x0 - 1 + 3*G 
-    tempvar y2 = y0 - 1 + 3*G 
-    tempvar z2 = z0 - 1 + 3*G
+    tempvar y3 = y0 - 1 + 3*G 
+    tempvar z3 = z0 - 1 + 3*G
 
     # Getting the gradient vectors of each vertex of the simplex.
     let (g0 : Point) = select_vector(i,j,k, seed)
@@ -158,15 +164,18 @@ func noise3D_custom{pedersen_ptr : HashBuiltin, range_check_ptr}(x,y,z, scale, s
 end
 
 func get_contribution{range_check_ptr}(x,y,z, g : Point) -> (contribution):
+    alloc_locals
     let (x_squared) = Math64x61_mul_unsafe(x,x)
     let (y_squared) = Math64x61_mul_unsafe(y,y)
     let (z_squared) = Math64x61_mul_unsafe(z,z)
 
     tempvar t = R_SQUARED - x_squared - y_squared - z_squared
-    if is_le(t, 0) != 0:
+
+    let (temp) = is_le(t, 0)
+    if temp != 0:
         return (contribution=0)
     else:
-        let (t_squared) = Math64x64_mul_unsafe(t,t)
+        let (t_squared) = Math64x61_mul_unsafe(t,t)
         let (t_pow4) = Math64x61_mul_unsafe(t_squared, t_squared)
         let (dot_prod) = dot((x,y,z), g)
 
