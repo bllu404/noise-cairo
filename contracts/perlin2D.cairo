@@ -140,7 +140,7 @@ end
 
 # Assumes point, scale, and seed are regular unsigned felts. Returns a felt in 64.61 signed format. 
 # scale essentially represents the desired grid-box sidelength
-func noise_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(point : (felt,felt), scale, seed) -> (res):
+func noise2D_custom{pedersen_ptr : HashBuiltin*, bitwise_ptr : BitwiseBuiltin*, range_check_ptr}(point : (felt,felt), scale, seed) -> (res):
     alloc_locals
 
     let (point_64x61 : (felt, felt)) = vec_to_vec64x61(point)
